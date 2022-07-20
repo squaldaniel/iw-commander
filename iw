@@ -50,7 +50,8 @@ switch($argv[1])
             desenvolvida por '.colorMessage("Daniels Hogans", "success"). '. Os comandos iniciais são:'."\r\n\r\n"
             .colorMessage('version', "success")." : Mostra a versão da engine do IW comander.\r\n"
             .colorMessage("create:", "success")."\r\n\tcontroller : cria um controller\r\n"
-            ."\tview : cria uma view [contrução]\r\n";
+            ."\tview :\t cria uma view \r\n"
+            ."\tmodel :\t cria uma model [em contrução]\r\n";
 		break;
         case $argv[1]:
             $param = explode(":", $argv[1]);
@@ -133,6 +134,37 @@ switch($argv[1])
                             exit;
                             break;
                         exit;
+                        case "model" :
+                            if(in_array($make[0], $iw["modules"]) )
+                            {
+                                $path = MODULE_DIR.$make[0].'/models/';
+                                $strViewName = $make[0].'_'.$make[1].'.php';
+
+                                $strFileController = "";
+                                $strFileName = $path.$make[0].'_'.$make[1].'.php';
+                                if(!file_exists($strFileName))
+                                    {
+                                        $recFile = fopen($strFileName, 'w') or die("Unable to open file!");
+                                        fwrite($recFile, $strFileController);
+                                        fclose($recFile);
+                                        echo "\r\n".colorMessage("model criada com sucesso!", "success");
+                                    } else {
+                                            echo colorMessage("model existente!", "danger");
+                                            exit;
+                                            };
+                            } else {
+                                if ($argv[2] == ""){
+                                    echo colorMessage("\r\n create:model: necessário nome da model", "danger");
+                                } else {
+                                echo colorMessage("\r\n Não existe esse modulo: ", "danger")
+                                .colorMessage($make[0]."\r\n\r\n", "warning");
+                                exit;
+                                };
+                            };
+                    exit;
+                            break;
+                            exit;
+                    
                     };
                     //echo "você vai criar um modulo";
                     exit;
