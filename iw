@@ -6,14 +6,14 @@
   	Criador: Daniels Hogans
   	e-mail: daniel.santos.ap@gmail.com
  	Criação: 18/07/2022
- 	Últimas alterações: 18/07/2022
+ 	Últimas alterações: 21/07/2022
 ###################################################################################################
 **/
 define("ROOT_DIR", __DIR__);
 define("MODULE_DIR", ROOT_DIR."/modulos/");
 $iw = [
     "version" => '1.0',
-    "modules" => array_diff(scandir(MODULE_DIR), [".", ".."])
+    "modules" => array_diff(scandir(MODULE_DIR), [".", ".."]),
 ];
 function colorMessage(string $message, $color = "default")
     {
@@ -39,19 +39,20 @@ function colorMessage(string $message, $color = "default")
                 break;
             }
     };
-if (isset($argv[1]) ? $argv[1] :$argv[1] = "");
+if (isset($argv[1]) ? $argv[1] : $argv[1] = "");
 switch($argv[1])
 	{
 		case 'version':
 			echo "IW Comander now is ".colorMessage($iw["version"], "danger");
 		break;
 		case 'help':
-            echo colorMessage('IW Comander', "primary") .' é ama ferramenta de linha de comando do iw. Esta versão foi
+            echo colorMessage('IW Comander', "primary") .' é uma ferramenta de linha de comando do iw. Esta versão foi
             desenvolvida por '.colorMessage("Daniels Hogans", "success"). '. Os comandos iniciais são:'."\r\n\r\n"
             .colorMessage('version', "success")." : Mostra a versão da engine do IW comander.\r\n"
-            .colorMessage("create:", "success")."\r\n\tcontroller : cria um controller\r\n"
+            .colorMessage("create:", "success")."\t▼\r\n\tcontroller : cria um controller\r\n"
             ."\tview :\t cria uma view \r\n"
-            ."\tmodel :\t cria uma model [em contrução]\r\n";
+            ."\tmodel :\t cria uma model\r\n"
+            .colorMessage("add:", "success"). "\t▼\r\n\tmetodos para adicionar functions\r\n";
 		break;
         case $argv[1]:
             $param = explode(":", $argv[1]);
@@ -133,14 +134,15 @@ switch($argv[1])
                             echo "criar metodo para view";
                             exit;
                             break;
-                        exit;
                         case "model" :
                             if(in_array($make[0], $iw["modules"]) )
                             {
                                 $path = MODULE_DIR.$make[0].'/models/';
                                 $strViewName = $make[0].'_'.$make[1].'.php';
-
-                                $strFileController = "";
+                                $strFileController = "<?php\r\ndefined('SYSPATH') || die('No direct script access.');\r\n"
+                                ."class ".strtoupper($make[0]).'_'.ucfirst($make[1]).'_Model extends IW_Model {'
+                                ."\r\n\tpublic function __construct()\r\n\t\t{\r\n\t\t\tif ( ! is_object(\$this->db))\r\n\t\t\t{\r\n"
+                                ."\t\t\t\t\t\$this->db = Database::instance('default');\r\n\t\t\t}\r\n\t\t}\r\n}\r\n?>";
                                 $strFileName = $path.$make[0].'_'.$make[1].'.php';
                                 if(!file_exists($strFileName))
                                     {
@@ -161,9 +163,12 @@ switch($argv[1])
                                 exit;
                                 };
                             };
-                    exit;
                             break;
                             exit;
+                        case 'menu' :
+                            $line = readline(colorMessage("Digite seu comando :", "success"));
+                                echo $line;
+                                break;
                     
                     };
                     //echo "você vai criar um modulo";
@@ -171,7 +176,8 @@ switch($argv[1])
                 break;
                 default:
                 break;
-                }
+            }
+        break;
 		default:
 			echo "\e[32m ferramenta de linha de comando do IW. Digite: 'php iw help' para a lista de comandos\e[39m";
 		break;
