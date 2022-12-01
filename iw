@@ -9,36 +9,185 @@
  	Últimas alterações: 21/07/2022
 ###################################################################################################
 **/
-define("ROOT_DIR", __DIR__);
-define("MODULE_DIR", ROOT_DIR."/modulos/");
+/**
+ * pegar as configurações do IW
+ */
+
+/* define  a pasta de atual como root path */
+$_SERVER['SERVER_NAME'] = "localhost";
+require_once('../../global.php');
+define ("ROOT_DIR", __DIR__);
+define('EXT', '.php');
+define('DOCROOT', getcwd().DIRECTORY_SEPARATOR);
+$kohana_application = 'application';
+$kohana_modules = 'system/modules';
+$kohana_system = 'system';
+define('APPPATH', str_replace('\\', '/', realpath($kohana_application)).'/');
+define('MODPATH', str_replace('\\', '/', realpath($kohana_modules)).'/');
+define('SYSPATH', str_replace('\\', '/', realpath($kohana_system)).'/');
+define('IN_PRODUCTION', $arrConfigIW['ambiente']['producao']);
+/* define as pasta do iw cli  */ 
+define ("MODULE_DIR", ROOT_DIR."/modulos/");
+define ("CONFIG_DIR", ROOT_DIR."/application/config/");
+define ("APP_DIR", ROOT_DIR."/application/");
+
+include(APP_DIR. "core/Kohana.php");
+include (ROOT_DIR."/application/helpers/iw.php");
+include(CONFIG_DIR."database.php");
 $iw = [
+    /* versão atual do iw comander */ 
     "version" => '1.0',
+    /* coloca em array as pastas dos modulos excistentes */ 
     "modules" => array_diff(scandir(MODULE_DIR), [".", ".."]),
 ];
-function colorMessage(string $message, $color = "default")
+
+/****************************************************************
+ * Funções auxiliares da ferramenta
+ ***************************************************************/
+function colorMessage(string $strMessage, $strColor = "default") : string
     {
-        switch($color)
+        switch($strColor)
             {
                 case "danger":
-                    return "\e[91m ". $message ."\e[39m";
+                    return "\e[91m ". $strMessage ."\e[39m";
                     break;
                 case "success":
-                    return "\e[32m ". $message ."\e[39m";
+                    return "\e[32m ". $strMessage ."\e[39m";
                     break;
                 case "warning":
-                    return "\e[93m ". $message ."\e[39m";
+                    return "\e[93m ". $strMessage ."\e[39m";
                     break;
                 case "primary":
-                    return "\e[34m ". $message ."\e[39m";
+                    return "\e[34m ". $strMessage ."\e[39m";
                     break;
                 case "alert":
-                    return "\e[95m ". $message ."\e[39m";
+                    return "\e[95m ". $strMessage ."\e[39m";
                     break;
                 default:
-                    return "\e[39m ". $message ."\e[39m";
+                    return "\e[39m ". $strMessage ."\e[39m";
                 break;
             }
     };
+function existe(string $strPath): bool
+    {
+        if (!file_exists($strPath) )
+        {
+            return false;
+        } else {
+            return true;
+        };
+    }
+function makeController(string $strControllerName)
+    {
+        $make = explode('_', $strControllerName);
+        $strControllerName = strtoupper($make[0]).'_'.ucfirst($make[1]).'_Controller';
+        $strFileControllerContent = "<?php\r\n defined('SYSPATH') || die('No direct script access.');\r\n\r\n\t class "
+            .$strControllerName .' extends '.strtoupper($make[0])
+            ."_Controller {\r\n\t\tpublic function __construct()\r\n\t\t\t{\r\n\t\t\t\tparent::__construct();"
+            ."\r\n\t\t\t}\r\n\t\tpublic function index()\r\n\t\t\t{\r\n\r\n\t\t\t}\r\n}\r\n?>";
+
+        if(in_array($make[0], $GLOBALS["iw"]["modules"])){
+            $path = MODULE_DIR.$make[0].'/controllers/';
+            $dir =strtolower($path.$make[1]);
+            /** caso não exista a pasta, será criada */
+            if (!file_exists($dir)){
+                mkdir($dir);
+                echo colorMessage("\nPasta de modulo criada com sucesso!\n\n", "success");
+            };
+            $strFileName = $make[0].'_'.strtolower($make[1]).".php";
+            $strFileController = $dir."/".$strFileName;
+            if(!file_exists($strFileController)){
+                $recFile = fopen($strFileController, 'w') or die("Unable to open file!");
+                fwrite($recFile, $strFileControllerContent);
+                fclose($recFile);
+                return colorMessage("\nController criado com sucesso!\n\n", "success");
+                } else {
+                    return colorMessage("\nController existente! \n\n", "danger");//. colorMessage("deseja criar um metodo?\n\n");
+            };
+            } else {
+            return "\nO módulo ". colormessage($make[0], "danger") .", não existe\n\n";      
+        };
+        return colormessage("\nMódulo ".$make[0]." já existe", "warning");
+    }
+function makeView(string $strViewName, string $strParams='')
+    {
+        $make = explode('_', $strViewName);
+        if(in_array($make[0], $GLOBALS["iw"]["modules"]) )
+        {
+            $path = MODULE_DIR.$make[0].'/views/';
+            $dir =$path.strtolower( $make[1]);
+            if (!file_exists($path.$make[1]) )
+                {
+                    mkdir($dir);
+                    echo colorMessage("Pasta criada com sucesso!", "success");
+                };
+            $strViewName = strtoupper($make[0]).'_'.ucfirst($make[1]).'.php';
+
+            $strFileController = "<?php\r\n defined('SYSPATH') || die('No direct script access.');\r\n?>\r\n\t <h1> minha view </h1>";
+            $strFileName = $dir.'/'.$make[0].'_'.$make[1].'.php';
+            if(!file_exists($strFileName))
+                {
+                    $recFile = fopen($strFileName, 'w') or die("Unable to open file!");
+                    fwrite($recFile, $strFileController);
+                    fclose($recFile);
+                    echo "\r\n".colorMessage("View criada com sucesso!", "success");
+                } else {
+                        echo colorMessage("View existente!", "danger");
+                        exit;
+                        };
+        } else {
+            if ($strParams == ""){
+                echo colorMessage("\r\n create:view: necessário nome da view", "danger");
+            } else {
+            echo colorMessage("\r\n Não existe esse modulo: ", "danger")
+            .colorMessage($make[0]."\r\n\r\n", "warning");
+            exit;
+            };
+        };
+        //exit;
+        //return $strViewName;
+    }
+function makeModel(string $strModelName, string $strTableName = '')
+    {
+        $make = explode('_', $strModelName);
+        if(isset($strTableName))
+            {
+                $strTableName = str_replace("--table=", '', $strTableName);
+                $table = "\n\tpublic function getTable()\n\t\t{\n\t\t\treturn 'iwprd_XXX.$strTableName';\n\t\t}";
+                } else {
+                    $table = '';
+            };
+        
+        if(in_array($make[0], $GLOBALS["iw"]["modules"]) )
+        {
+            $path = ROOT_DIR."/schemas/".$make[0].'/models/';
+            $strModelContent = "<?php\r\ndefined('SYSPATH') || die('No direct script access.');\r\n"
+            ."class ".strtoupper($make[0]).'_'.ucfirst($make[1]).'_Model extends IW_Model {'
+            ."\r\n\tpublic function __construct()\r\n\t\t{\r\n\t\t\tif ( ! is_object(\$this->db))\r\n\t\t\t{\r\n"
+            ."\t\t\t\t\t\$this->db = Database::instance('default');\r\n\t\t\t}\r\n\t\t}$table\r\n}\r\n?>";
+            $strFileName = $path.$make[0].'_'.$make[1].'.php';
+            if(!file_exists($strFileName))
+                {
+                    $recFile = fopen($strFileName, 'w') or die("Não foi possivel abrir/criar o arquivo");
+                    fwrite($recFile, $strModelContent);
+                    fclose($recFile);
+                    echo "\r\n".colorMessage("model criada com sucesso!", "success");
+                } else {
+                            echo colorMessage("model existente!", "danger");
+                            exit;
+                        };
+            } else {
+                if ($strTableName == "")
+                    {
+                        echo colorMessage("\r\n create:model: necessário nome da model", "danger");
+                        } else {
+                            echo colorMessage("\r\n Não existe esse modulo: ", "danger")
+                            .colorMessage($make[0]."\r\n\r\n", "warning");
+                            exit;
+                    };
+        };
+    };
+// -- start commands    
 if (isset($argv[1]) ? $argv[1] : $argv[1] = "");
 switch($argv[1])
 	{
@@ -46,138 +195,40 @@ switch($argv[1])
 			echo "IW Comander now is ".colorMessage($iw["version"], "danger");
 		break;
 		case 'help':
+            echo "\n";
             echo colorMessage('IW Comander', "primary") .' é uma ferramenta de linha de comando do iw. Esta versão foi
             desenvolvida por '.colorMessage("Daniels Hogans", "success"). '. Os comandos iniciais são:'."\r\n\r\n"
             .colorMessage('version', "success")." : Mostra a versão da engine do IW comander.\r\n"
             .colorMessage("create:", "success")."\t▼\r\n\tcontroller : cria um controller\r\n"
             ."\tview :\t cria uma view \r\n"
             ."\tmodel :\t cria uma model\r\n"
-            .colorMessage("add:", "success"). "\t▼\r\n\tmetodos para adicionar functions\r\n";
+            .colorMessage("add:", "success"). "\t▼\r\n\tmetodos para adicionar functions ".colorMessage("[construção]", "danger")."\r\n";
 		break;
-        case $argv[1]:
-            $param = explode(":", $argv[1]);
-            isset($argv[2]) ? $argv[2] : $argv[2]= "";
-            $make = explode("_", $argv[2]);
-            switch ($param[0]){
-                case "create" :
-                    switch ($param[1]){
-                        case "controller" :
-                            if(isset($argv[2])){
-                                if(in_array($make[0], $iw["modules"]) )
-                                    {
-                                        $path = MODULE_DIR.$make[0].'/controllers/';
-                                        $dir =$path.$make[1];
-                                        if (!file_exists($path.$make[1]) )
-                                            {
-                                                mkdir($dir);
-                                                echo colorMessage("Pasta criada com sucesso!", "success");
-                                            };
-                                        $strClassName = strtoupper($make[0]).'_'.ucfirst($make[1]).'_Controller';
-                                        $strFileController = "<?php\r\n defined('SYSPATH') || die('No direct script access.');\r\n\r\n\t class "
-                                                            .$strClassName .' extends '.strtoupper($make[0])
-                                                            ."_Controller {\r\n\t\tpublic function __construct()\r\n\t\t\t{\r\n\t\t\t\tparent::__construct();"
-                                                            ."\r\n\t\t\t}\r\n\t\tpublic function index()\r\n\t\t\t{\r\n\r\n\t\t\t}\r\n}\r\n?>";
-                                        $strFileName = $dir.'/'.$make[0].'_'.$make[1].'.php';
-                                        if(!file_exists($strFileName))
-                                            {
-                                                $recFile = fopen($strFileName, 'w') or die("Unable to open file!");
-                                                fwrite($recFile, $strFileController);
-                                                fclose($recFile);
-                                                echo "\r\n".colorMessage("Controller criado com sucesso!", "success");
-                                            } else {
-                                                    echo colorMessage("Controller existente!", "danger");
-                                                    exit;
-                                                    };
-                                    } else {
-                                        echo colorMessage("\r\n Não existe esse modulo: ", "danger")
-                                        .colorMessage($make[0]."\r\n\r\n", "warning");
-                                        exit;
-                                    };
-                                exit;
-                            };
-                            exit;
-                            break;
-                        case "view" :
-                            if(in_array($make[0], $iw["modules"]) )
-                                    {
-                                        $path = MODULE_DIR.$make[0].'/views/';
-                                        $dir =$path.$make[1];
-                                        if (!file_exists($path.$make[1]) )
-                                            {
-                                                mkdir($dir);
-                                                echo colorMessage("Pasta criada com sucesso!", "success");
-                                            };
-                                        $strViewName = strtoupper($make[0]).'_'.ucfirst($make[1]).'.php';
-
-                                        $strFileController = "<?php\r\n defined('SYSPATH') || die('No direct script access.');\r\n?>\r\n\t <h1>minha view </h1>";
-                                        $strFileName = $dir.'/'.$make[0].'_'.$make[1].'.php';
-                                        if(!file_exists($strFileName))
-                                            {
-                                                $recFile = fopen($strFileName, 'w') or die("Unable to open file!");
-                                                fwrite($recFile, $strFileController);
-                                                fclose($recFile);
-                                                echo "\r\n".colorMessage("View criada com sucesso!", "success");
-                                            } else {
-                                                    echo colorMessage("View existente!", "danger");
-                                                    exit;
-                                                    };
-                                    } else {
-                                        if ($argv[2] == ""){
-                                            echo colorMessage("\r\n create:view: necessário nome da view", "danger");
-                                        } else {
-                                        echo colorMessage("\r\n Não existe esse modulo: ", "danger")
-                                        .colorMessage($make[0]."\r\n\r\n", "warning");
-                                        exit;
-                                        };
-                                    };
-                                exit;
-                            echo "criar metodo para view";
-                            exit;
-                            break;
-                        case "model" :
-                            if(in_array($make[0], $iw["modules"]) )
-                            {
-                                $path = MODULE_DIR.$make[0].'/models/';
-                                $strViewName = $make[0].'_'.$make[1].'.php';
-                                $strFileController = "<?php\r\ndefined('SYSPATH') || die('No direct script access.');\r\n"
-                                ."class ".strtoupper($make[0]).'_'.ucfirst($make[1]).'_Model extends IW_Model {'
-                                ."\r\n\tpublic function __construct()\r\n\t\t{\r\n\t\t\tif ( ! is_object(\$this->db))\r\n\t\t\t{\r\n"
-                                ."\t\t\t\t\t\$this->db = Database::instance('default');\r\n\t\t\t}\r\n\t\t}\r\n}\r\n?>";
-                                $strFileName = $path.$make[0].'_'.$make[1].'.php';
-                                if(!file_exists($strFileName))
-                                    {
-                                        $recFile = fopen($strFileName, 'w') or die("Unable to open file!");
-                                        fwrite($recFile, $strFileController);
-                                        fclose($recFile);
-                                        echo "\r\n".colorMessage("model criada com sucesso!", "success");
-                                    } else {
-                                            echo colorMessage("model existente!", "danger");
-                                            exit;
-                                            };
-                            } else {
-                                if ($argv[2] == ""){
-                                    echo colorMessage("\r\n create:model: necessário nome da model", "danger");
-                                } else {
-                                echo colorMessage("\r\n Não existe esse modulo: ", "danger")
-                                .colorMessage($make[0]."\r\n\r\n", "warning");
-                                exit;
-                                };
-                            };
-                            break;
-                            exit;
-                        case 'menu' :
-                            $line = readline(colorMessage("Digite seu comando :", "success"));
-                                echo $line;
-                                break;
-                    
-                    };
-                    //echo "você vai criar um modulo";
-                    exit;
-                break;
-                default:
-                break;
-            }
+        case "create:controller" :
+            echo makeController($argv[2]);
         break;
+        case "create:view" :
+            echo makeView($argv[2]);
+            break;
+        case "create:model" :
+            if (isset($argv[3]))
+                {
+                    echo makeModel($argv[2], $argv[3]);
+                };
+            echo makeModel($argv[2]);
+            
+            break;
+        case "config" :
+            print_r($argv);
+            break; 
+            $mostrarmenu = readline("Deseja listar os módulos existentes? : (y | n)");  
+            //echo CONFIG_DIR; 
+            echo $mostrarmenu."\n";
+            //include(APP_DIR. "libraries/Database.php");
+            //$database = new Database_Core;
+            //include(SYSPATH."libraries/Model.php");
+            //$model = new Model_Core;
+            break;
 		default:
 			echo "\e[32m ferramenta de linha de comando do IW. Digite: 'php iw help' para a lista de comandos\e[39m";
 		break;
