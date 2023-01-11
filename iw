@@ -44,31 +44,37 @@ $iw = [
 /****************************************************************
  * Funções auxiliares da ferramenta
  ***************************************************************/
-function colorMessage(string $strMessage, $strColor = "default") : string
+function colorMessage($strMessage, $strColor = "default")
     {
         switch($strColor)
             {
                 case "danger":
-                    return "\e[91m ". $strMessage ."\e[39m";
+                    return "". $strMessage ."";
+                    //return "\e[91m ". $strMessage ."\e[39m";
                     break;
                 case "success":
-                    return "\e[32m ". $strMessage ."\e[39m";
+                    return "". $strMessage ."";
+                    //return "\e[31m". $strMessage ."\e[39m";
                     break;
                 case "warning":
-                    return "\e[93m ". $strMessage ."\e[39m";
+                    return "". $strMessage ."";
+                    //return "\e[93m ". $strMessage ."\e[39m";
                     break;
                 case "primary":
-                    return "\e[34m ". $strMessage ."\e[39m";
+                    return "". $strMessage ."";
+                    //return "\e[34m ". $strMessage ."\e[39m";
                     break;
                 case "alert":
-                    return "\e[95m ". $strMessage ."\e[39m";
+                    return "". $strMessage ."";
+                    //return "\e[95m ". $strMessage ."\e[39m";
                     break;
                 default:
-                    return "\e[39m ". $strMessage ."\e[39m";
+                    return "". $strMessage ."";
+                    //return "\e[39m ". $strMessage ."\e[39m";
                 break;
             }
     };
-function existe(string $strPath): bool
+function existe( $strPath)
     {
         if (!file_exists($strPath) )
         {
@@ -77,7 +83,7 @@ function existe(string $strPath): bool
             return true;
         };
     }
-function makeController(string $strControllerName)
+function makeController($strControllerName)
     {
         $make = explode('_', $strControllerName);
         $strControllerName = strtoupper($make[0]).'_'.ucfirst($make[1]).'_Controller';
@@ -109,7 +115,7 @@ function makeController(string $strControllerName)
         };
         return colormessage("\nMódulo ".$make[0]." já existe", "warning");
     }
-function makeView(string $strViewName, string $strParams='')
+function makeView($strViewName, $strParams=null)
     {
         $make = explode('_', $strViewName);
         if(in_array($make[0], $GLOBALS["iw"]["modules"]) )
@@ -147,7 +153,7 @@ function makeView(string $strViewName, string $strParams='')
         //exit;
         //return $strViewName;
     }
-function makeModel(string $strModelName, string $strTableName = '')
+function makeModel($strModelName, $strTableName = null)
     {
         $make = explode('_', $strModelName);
         if(isset($strTableName))
@@ -187,6 +193,59 @@ function makeModel(string $strModelName, string $strTableName = '')
                     };
         };
     };
+function createDirectories($arrListDiretories, $dirbase)
+    {
+        foreach ($arrListDiretories as $key => $value)
+        {
+            $newdir = __DIR__.'\\'.$dirbase.str_replace(__DIR__, '', $value);
+            if (!file_exists($newdir)){
+                mkdir($newdir, 777, true);
+            };
+        }
+    }
+function copyFiles($listfile, $destineDir)
+    {
+        $sources = fopen($listfile, "r");
+            while (( $file = fgets($sources)) !== false)
+                {
+                    $semquebra = preg_replace("/\s/i", '', $file);
+                    $destine = __DIR__."\\".$destineDir.str_replace(__DIR__, '',$semquebra);
+                    if (file_exists($semquebra)){
+                        copy("$semquebra", "$destine");
+                        echo "\ncopiado com sucesso!";
+                    } else {
+                        echo "Fail!:\n".$semquebra;
+                    };
+                }
+    }
+function zip($listfile)
+    {
+        if(existe($listfile)){
+            $dir = explode('.', $listfile)[0];           
+            $input = fopen($listfile, "r");
+            $path = __DIR__ . '\\'.$dir;
+            $tomake = [];
+            if ($input) {
+                while (($line = fgets($input)) !== false) {
+                    $directories = explode("\\", str_replace($path, '', $line));
+                    foreach($directories as $key => $value)
+                        {
+                            if(strrchr($value, '.') || $value == ''){
+                                unset($directories[$key]);
+                            };
+                        };
+                    $part = implode("\\", $directories);
+                    array_push($tomake, $part);
+                };
+                fclose($input);
+            };
+            $limpo = array_unique($tomake);
+            createDirectories($limpo, $dir);
+            copyFiles($listfile, $dir);
+            } else {
+                return print("Nao existe o arquivo informado.");
+            };
+    };
 // -- start commands    
 if (isset($argv[1]) ? $argv[1] : $argv[1] = "");
 switch($argv[1])
@@ -219,8 +278,7 @@ switch($argv[1])
             
             break;
         case "config" :
-            print_r($argv);
-            break; 
+            //print_r($argv);
             $mostrarmenu = readline("Deseja listar os módulos existentes? : (y | n)");  
             //echo CONFIG_DIR; 
             echo $mostrarmenu."\n";
@@ -229,8 +287,14 @@ switch($argv[1])
             //include(SYSPATH."libraries/Model.php");
             //$model = new Model_Core;
             break;
+        case 'zipfile' :
+            return zip($argv[2]);
+            /** 
+             *  [2] => meufile.txt
+             */
+            break;
 		default:
-			echo "\e[32m ferramenta de linha de comando do IW. Digite: 'php iw help' para a lista de comandos\e[39m";
+			echo colorMessage("ferramenta de linha de comando do IW. Digite: 'php iw help' para a lista de comandos", 'success' );
 		break;
 	};
 ?>
