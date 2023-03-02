@@ -218,6 +218,27 @@ function copyFiles($listfile, $destineDir)
                     };
                 }
     }
+function compatarDir($dirName)
+    {
+        $zipcreated = "$dirName.zip";
+        /*
+        $pathdir = "$dirName/"; 
+        
+        // Create new zip class
+        $zip = new ZipArchive;
+        if($zip->open($zipcreated, ZipArchive::CREATE || ZipArchive::OVERWRITE) === TRUE) {
+            // Store the path into the variable
+            $dir = opendir($pathdir);
+            while($file = readdir($dir)) {
+                if(is_file($pathdir.$file)) {
+                    $zip->addFile($pathdir.$file, $file);
+                }
+            }
+            $zip->close();
+        };
+        */
+        return $zipcreated ." pasta preparada!";
+    }
 function zip($listfile)
     {
         if(existe($listfile)){
@@ -242,6 +263,7 @@ function zip($listfile)
             $limpo = array_unique($tomake);
             createDirectories($limpo, $dir);
             copyFiles($listfile, $dir);
+            //echo "\n".compatarDir($dir);
             } else {
                 return print("Nao existe o arquivo informado.");
             };
@@ -255,13 +277,15 @@ switch($argv[1])
 		break;
 		case 'help':
             echo "\n";
-            echo colorMessage('IW Comander', "primary") .' é uma ferramenta de linha de comando do iw. Esta versão foi
-            desenvolvida por '.colorMessage("Daniels Hogans", "success"). '. Os comandos iniciais são:'."\r\n\r\n"
+            echo colorMessage('IW Comander', "primary") .' E uma ferramenta de linha de comando do iw. Esta versao foi
+            desenvolvida por '.colorMessage("Daniels Hogans", "success"). '. Os comandos iniciais sao:'."\r\n\r\n"
             .colorMessage('version', "success")." : Mostra a versão da engine do IW comander.\r\n"
-            .colorMessage("create:", "success")."\t▼\r\n\tcontroller : cria um controller\r\n"
+            .colorMessage('zipfile', "success")." : Copia os arquivos de uma lista para uma unica pasta.\r\n"
+            .colorMessage("create:", "succes
+            s")."\t▼\r\n\tcontroller : cria um controller\r\n"
             ."\tview :\t cria uma view \r\n"
             ."\tmodel :\t cria uma model\r\n"
-            .colorMessage("add:", "success"). "\t▼\r\n\tmetodos para adicionar functions ".colorMessage("[construção]", "danger")."\r\n";
+            .colorMessage("add:", "success"). "\t▼\r\n\tmetodos para adicionar functions ".colorMessage("[construcao]", "danger")."\r\n";
 		break;
         case "create:controller" :
             echo makeController($argv[2]);
